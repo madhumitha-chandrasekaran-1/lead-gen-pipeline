@@ -98,3 +98,7 @@ env.example              template for .env
 ## Safety
 
 Nothing in this pipeline sends, posts, or publishes anything on its own. Every draft returned in Chat is meant to be manually copy/pasted (or reviewed and sent) by a human. The tracker server only redirects and logs; it never initiates outreach.
+
+## Example output
+
+![Example Chat output](docs/output.png)
