@@ -67,6 +67,8 @@ node update.js <lead_id> --signed_up true
 
 ## Dashboard
 
+![Dashboard](docs/dashboard.png)
+
 ```
 python3 -m http.server 8080   # from the repo root
 ```
