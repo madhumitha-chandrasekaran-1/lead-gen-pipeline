@@ -1,0 +1,484 @@
+{
+  "components": [
+    {
+      "id": "chat_1",
+      "provider": "chat",
+      "name": "Chat",
+      "config": {
+        "hideForm": true,
+        "mode": "Source",
+        "parameters": {},
+        "type": "chat",
+        "name": "Chat"
+      },
+      "ui": {
+        "position": {
+          "x": 310,
+          "y": 450
+        },
+        "nodeType": "default",
+        "formDataValid": true
+      }
+    },
+    {
+      "id": "agent_crewai_1",
+      "provider": "agent_crewai",
+      "name": "Signal Scout Agent",
+      "config": {
+        "advanced_mode": false,
+        "agent_description": "Searches GitHub, the web (via Exa), and job/social postings for companies showing signs of building custom LLM pipeline infrastructure by hand — hardcoded API calls to multiple model providers, manual vector store integration, or ad hoc prompt orchestration code — that could benefit from RocketRide's pipeline platform. Once signals are gathered, delegates structuring to the Data Extractor Agent and outreach drafting to the Outreach Manager, returning qualified leads with their drafted messages.",
+        "instructions": [
+          "Search for public repos with recent commits touching LLM orchestration, prompt chaining, or multi-provider API integration written manually rather than via an existing framework. For each match, note the repo owner, what specifically suggests they're building this by hand, and how recently they were active. Prioritize signals over popularity — a small recently-active repo with messy pipeline code is a better lead than a large well-maintained one.",
+          "Use the Exa Search tool to find job postings and social posts (LinkedIn, X/Twitter, engineering blogs) from companies hiring for or discussing custom LLM pipeline work — e.g. postings for 'LLM orchestration engineer' or posts describing homegrown prompt chaining, multi-provider routing, or manual vector store integration. For each match, note the company, the specific signal, the source URL, and how recent it is. Prioritize active, recent signals over generic AI-hiring posts.",
+          "When a candidate company is identified via GitHub, Exa Search, or a social/job posting signal, use the Firecrawl tool to scrape their careers page or engineering blog for corroborating context (e.g. confirming an open LLM/AI-infra role, or a blog post describing their stack) before treating it as a qualified lead.",
+          "Once you've gathered and corroborated signals, invoke the Data Extractor Agent tool to convert your raw findings into structured lead records (company name, contact/repo owner, signal type, evidence, fit score).",
+          "For each structured lead with a fit score of 6 or higher, invoke the Outreach Manager tool to produce a reviewed, developer-to-developer outreach draft.",
+          "After the Outreach Manager returns a lead's final approved draft, use the Outreach Logger tool to record it before moving to the next lead: send an HTTP POST to http://localhost:3000/log with a JSON body containing exactly these fields: lead_id, company_name, contact_or_repo_owner, signal_type, evidence, fit_score, variant, tracking_url, and message_draft (the approved draft text). Do this once per qualified lead. If the log request fails for any reason, don't retry more than once and don't let it block you — still include the lead in your final answer regardless of whether logging succeeded.",
+          "Return each qualified lead's structured record together with its drafted message in your final answer. Never send, post, or publish anything yourself — you only ever return drafts for a human to review.",
+          "Write your final answer for a non-technical sales reader, not a technical narrative. Do not include scope notes, verification-status caveats, internal step-by-step narration, or commentary about what you did or didn't check — keep that reasoning to yourself and only report conclusions. For each candidate, output only: the company name, one plain-English sentence on why they're a fit (translate technical detail into everyday language — e.g. 'they built their own system to connect to multiple AI providers instead of using an off-the-shelf tool' rather than 'a hand-rolled LLM provider abstraction layer with a factory router'), the source link, and — once available — the fit score and drafted outreach message. No headers, no bulleted technical deep-dives, no code snippets, no restating the task back to the user."
+        ],
+        "name": "Signal Scout Agent",
+        "parameters": {}
+      },
+      "ui": {
+        "position": {
+          "x": 540,
+          "y": 440
+        },
+        "nodeType": "default",
+        "formDataValid": true
+      },
+      "input": [
+        {
+          "lane": "questions",
+          "from": "chat_1"
+        }
+      ]
+    },
+    {
+      "id": "tool_github_1",
+      "provider": "tool_github",
+      "name": "GitHub Search",
+      "config": {
+        "defaultRepo": "",
+        "readOnly": true,
+        "token": "${ROCKETRIDE_GITHUB_TOKEN}",
+        "type": "tool_github",
+        "name": "GitHub Search"
+      },
+      "ui": {
+        "position": {
+          "x": 540,
+          "y": 720
+        },
+        "nodeType": "default",
+        "formDataValid": true
+      },
+      "control": [
+        {
+          "classType": "tool",
+          "from": "agent_crewai_1"
+        }
+      ]
+    },
+    {
+      "id": "tool_exa_search_1",
+      "provider": "tool_exa_search",
+      "name": "Exa Search",
+      "config": {
+        "type": "tool_exa_search",
+        "apikey": "${ROCKETRIDE_EXA_API_KEY}",
+        "numResults": 6,
+        "useAutoprompt": true,
+        "searchType": "auto",
+        "includeText": true,
+        "name": "Exa Search"
+      },
+      "ui": {
+        "position": {
+          "x": 230,
+          "y": 650
+        },
+        "nodeType": "default",
+        "formDataValid": true
+      },
+      "control": [
+        {
+          "classType": "tool",
+          "from": "agent_crewai_1"
+        }
+      ]
+    },
+    {
+      "id": "tool_firecrawl_1",
+      "provider": "tool_firecrawl",
+      "name": "Firecrawl",
+      "config": {
+        "type": "tool_firecrawl",
+        "apikey": "${ROCKETRIDE_FIRECRAWL_API_KEY}",
+        "name": "Firecrawl"
+      },
+      "ui": {
+        "position": {
+          "x": 740,
+          "y": 670
+        },
+        "nodeType": "default",
+        "formDataValid": true
+      },
+      "control": [
+        {
+          "classType": "tool",
+          "from": "agent_crewai_1"
+        }
+      ]
+    },
+    {
+      "id": "tool_http_request_1",
+      "provider": "tool_http_request",
+      "name": "Outreach Logger",
+      "config": {
+        "type": "tool_http_request",
+        "allowGET": true,
+        "allowPOST": true,
+        "allowPUT": false,
+        "allowPATCH": false,
+        "allowDELETE": false,
+        "allowHEAD": false,
+        "allowOPTIONS": false,
+        "rateLimitPerSecond": 10,
+        "rateLimitPerMinute": 100,
+        "maxConcurrentRequests": 5,
+        "urlWhitelist": [
+          {
+            "whitelistPattern": "^http://localhost:3000/"
+          }
+        ],
+        "name": "Outreach Logger"
+      },
+      "ui": {
+        "position": {
+          "x": 940,
+          "y": 670
+        },
+        "nodeType": "default",
+        "formDataValid": true
+      },
+      "control": [
+        {
+          "classType": "tool",
+          "from": "agent_crewai_1"
+        }
+      ]
+    },
+    {
+      "id": "agent_crewai_2",
+      "provider": "agent_crewai",
+      "name": "Data Extractor Agent",
+      "config": {
+        "advanced_mode": false,
+        "agent_description": "Structures the raw buying-signal findings passed to it by the Signal Scout Agent into clean lead records: company name, contact/repo owner, signal type, specific evidence, a fit score, and a click-tracking link for the eventual outreach message.",
+        "instructions": [
+          "For each candidate you're given, output one structured record with exactly these fields: company_name, contact_or_repo_owner, signal_type (one of the literal strings 'github', 'job_posting', or 'social' — never any other spelling or casing), evidence (the exact repo name, quoted post text, or job listing excerpt — never paraphrase or summarize it away), fit_score (an integer 0-10, computed with the rubric below), and fit_score_breakdown (a short string showing the per-category points that produced the total, e.g. 'evidence:3, multi_provider:2, recency:2, corroboration:1, org_signal:1 = 9').",
+          "Score fit_score by summing points across five categories, each scored independently: (1) Evidence directness, 0-3 pts — 3 if the evidence unambiguously shows hand-rolled multi-provider orchestration (literal code calling multiple LLM/vector-store APIs directly, or text explicitly describing DIY orchestration), 2 if strongly implied (e.g. a job posting naming multiple providers and asking for a custom orchestration layer), 1 if plausible but indirect (a vague 'AI infrastructure' mention), 0 if too vague to use. (2) Multi-provider complexity, 0-2 pts — 2 if three or more providers/tools are being glued together manually, 1 if exactly two, 0 if one or unclear. (3) Recency, 0-2 pts — 2 if the signal is within the last 30 days, 1 if 30-90 days, 0 if older or undated. (4) Corroboration, 0-1 pt — 1 if a second, independent source confirms the signal (e.g. a Firecrawl scrape backing up a GitHub or Exa finding), 0 if single-source. (5) Buying/organizational signal, 0-2 pts — 2 if there's an open paid job requisition for this work or an official company engineering-blog post, 1 if it's an active org repo with multiple contributors (not a personal hobby project), 0 if it's a solo/personal project with no other organizational signal.",
+          "Discard candidates whose evidence-directness score is 0 rather than guessing or inflating the total to compensate.",
+          "Also generate three more fields per record: lead_id — a slug of company_name (lowercased, spaces and punctuation collapsed to single hyphens) followed by a hyphen and 4 random alphanumeric characters, e.g. 'acme-inc-x7q2'; tracking_url — the literal string 'http://localhost:3000/r/' followed by that lead_id, e.g. 'http://localhost:3000/r/acme-inc-x7q2'; and variant — randomly assign the literal string 'A' or 'B' to each lead with roughly equal probability, independent of any other lead's variant.",
+          "NOTE for the human operator: tracking_url points at the local outreach-tracker dev server (localhost:3000). Before actually sending any outreach message, swap localhost:3000 for the tracker's public ngrok (or deployed) URL — a link pointing at localhost won't resolve for the recipient."
+        ],
+        "name": "Data Extractor Agent",
+        "parameters": {}
+      },
+      "ui": {
+        "position": {
+          "x": 820,
+          "y": 920
+        },
+        "nodeType": "default",
+        "formDataValid": true
+      },
+      "control": [
+        {
+          "classType": "tool",
+          "from": "agent_crewai_1"
+        }
+      ]
+    },
+    {
+      "id": "agent_crewai_manager_1",
+      "provider": "agent_crewai_manager",
+      "name": "Outreach Manager",
+      "config": {
+        "advanced_mode": false,
+        "agent_description": "Coordinates the Copywriter and Tone Checker subagents to turn a qualified, structured lead into a short, specific, developer-to-developer outreach message draft.",
+        "instructions": [
+          "For each structured lead you're handed, delegate drafting to the Copywriter Subagent, then delegate that draft to the Tone Checker Subagent for review and revision before returning the final draft paired with its lead record.",
+          "Never delegate a send, post, or publish action to any subagent — this crew only ever produces draft text for a human to review and send manually."
+        ],
+        "name": "Outreach Manager",
+        "parameters": {}
+      },
+      "ui": {
+        "position": {
+          "x": 1260,
+          "y": 540
+        },
+        "nodeType": "default",
+        "formDataValid": true
+      },
+      "control": [
+        {
+          "classType": "tool",
+          "from": "agent_crewai_1"
+        }
+      ]
+    },
+    {
+      "id": "agent_crewai_subagent_1",
+      "provider": "agent_crewai_subagent",
+      "name": "Copywriter Subagent",
+      "config": {
+        "advanced_mode": false,
+        "agent_description": "Drafts a short, specific outreach message per lead that references the exact evidence found.",
+        "instructions": [
+          "Write as a founder or team member reaching out professionally, not casually. Open with a brief, polite greeting (e.g. 'Hi [name],').",
+          "Within the first two sentences, reference one concrete, specific detail from the lead's evidence (a file name, a job-posting phrase, a public comment), and state clearly and briefly who you are and why you're reaching out.",
+          "Keep the full message under 90 words.",
+          "Describe RocketRide using exactly this phrasing, word for word: 'an open-source AI pipeline platform that runs inside your IDE, helping teams build and deploy LLM and agent workflows without gluing everything together by hand.' Never use vague phrasing like 'AI pipeline builder.' Mention RocketRide exactly once, tied directly to the specific evidence, framed as a possible fit rather than a hard pitch.",
+          "Check the lead's variant field. If variant is 'A', include a line acknowledging the message was drafted as part of an AI-assisted outreach process, e.g. 'This message was drafted as part of an AI-assisted outreach process, though I'm reading and following up on every response myself.' If variant is 'B', omit this line entirely.",
+          "Close with a line directing them to the lead's tracking_url, e.g. 'You can see what we're building here: {tracking_url}' — use the lead's actual tracking_url value, never alter it.",
+          "After that, close with a specific, direct ask tied to the actual goal, not a vague social question. If writing to an individual contributor, offer a quick look at the tool or ask if they're the right person to loop in. If writing to a company/team broadly, ask who owns this kind of decision if the current contact isn't the right one. Example: 'Worth a quick look, or is there someone else on your team I should reach out to about this?'",
+          "Sign off with a proper closing and '[Your name]' as a placeholder.",
+          "No exclamation points, no 'hope you're doing well,' no generic flattery, no casual softening phrases like 'no pressure either way.' Never use em dashes anywhere in the message; use periods, commas, or separate sentences instead.",
+          "Reference example for target tone and length (variant A shape — a variant B draft is identical except the AI-assisted line is omitted): \"Hi Alex, I came across llm_router.py in your repo. Noticed you're manually handling failover between OpenAI and Anthropic, which is a problem a lot of technical teams run into. I'm part of the team at RocketRide, an open-source AI pipeline platform that runs inside your IDE. We help teams build and deploy LLM and agent workflows without gluing everything together by hand. Thought it might be relevant given what you're building. This message was drafted as part of an AI-assisted outreach process, though I'm reading and following up on every response myself. You can see what we're building here: http://localhost:3000/r/acme-inc-x7q2. Worth a quick look, or is there someone else on your team I should reach out to about this? Best, [Your name]\""
+        ],
+        "name": "Copywriter Subagent",
+        "parameters": {}
+      },
+      "ui": {
+        "position": {
+          "x": 1110,
+          "y": 670
+        },
+        "nodeType": "default",
+        "formDataValid": true
+      },
+      "control": [
+        {
+          "classType": "crewai",
+          "from": "agent_crewai_manager_1"
+        }
+      ]
+    },
+    {
+      "id": "agent_crewai_subagent_2",
+      "provider": "agent_crewai_subagent",
+      "name": "Tone Checker Subagent",
+      "config": {
+        "advanced_mode": false,
+        "agent_description": "Reviews each outreach draft and flags or revises anything that sounds generic, salesy, or spammy.",
+        "instructions": [
+          "Reject and revise any draft containing an em dash; replace it with a period or comma.",
+          "Reject and revise any draft that opens with 'I noticed,' a generic 'I came across,' 'I'd love to,' or 'check out,' or that closes with 'let me know' or a vague social question like 'what are you working on?'",
+          "Reject and revise any draft over 90 words.",
+          "Confirm the draft states RocketRide's description exactly as specified, word for word, not a paraphrase: 'an open-source AI pipeline platform that runs inside your IDE, helping teams build and deploy LLM and agent workflows without gluing everything together by hand.'",
+          "Confirm the draft includes a line directing the reader to the lead's tracking_url, and that it ends with a specific, direct ask rather than a vague one.",
+          "Check the lead's variant field. If variant is 'A', confirm the draft includes the AI-assisted-outreach disclosure line. If variant is 'B', confirm the draft omits that line entirely. Revise if the draft doesn't match its assigned variant.",
+          "Reference example for target tone and length (variant A shape — a variant B draft is identical except the AI-assisted line is omitted): \"Hi Alex, I came across llm_router.py in your repo. Noticed you're manually handling failover between OpenAI and Anthropic, which is a problem a lot of technical teams run into. I'm part of the team at RocketRide, an open-source AI pipeline platform that runs inside your IDE. We help teams build and deploy LLM and agent workflows without gluing everything together by hand. Thought it might be relevant given what you're building. This message was drafted as part of an AI-assisted outreach process, though I'm reading and following up on every response myself. You can see what we're building here: http://localhost:3000/r/acme-inc-x7q2. Worth a quick look, or is there someone else on your team I should reach out to about this? Best, [Your name]\"",
+          "Always return the final message text only — never a send, post, or publish action."
+        ],
+        "name": "Tone Checker Subagent",
+        "parameters": {}
+      },
+      "ui": {
+        "position": {
+          "x": 1310,
+          "y": 810
+        },
+        "nodeType": "default",
+        "formDataValid": true
+      },
+      "control": [
+        {
+          "classType": "crewai",
+          "from": "agent_crewai_manager_1"
+        }
+      ]
+    },
+    {
+      "id": "llm_anthropic_1",
+      "provider": "llm_anthropic",
+      "name": "LLM - Opus (orchestrator)",
+      "config": {
+        "profile": "custom",
+        "custom": {
+          "apikey": "${ROCKETRIDE_ANTHROPIC_KEY}",
+          "model": "claude-opus-4-8",
+          "modelTotalTokens": 1000000
+        },
+        "parameters": {},
+        "name": "LLM - Opus (orchestrator)"
+      },
+      "ui": {
+        "position": {
+          "x": 340,
+          "y": 740
+        },
+        "nodeType": "default",
+        "formDataValid": true
+      },
+      "control": [
+        {
+          "classType": "llm",
+          "from": "agent_crewai_1"
+        }
+      ]
+    },
+    {
+      "id": "llm_anthropic_2",
+      "provider": "llm_anthropic",
+      "name": "LLM - Sonnet (copywriting)",
+      "config": {
+        "profile": "custom",
+        "custom": {
+          "apikey": "${ROCKETRIDE_ANTHROPIC_KEY}",
+          "model": "claude-sonnet-5",
+          "modelTotalTokens": 1000000
+        },
+        "parameters": {},
+        "name": "LLM - Sonnet (copywriting)"
+      },
+      "ui": {
+        "position": {
+          "x": 950,
+          "y": 810
+        },
+        "nodeType": "default",
+        "formDataValid": true
+      },
+      "control": [
+        {
+          "classType": "llm",
+          "from": "agent_crewai_subagent_1"
+        }
+      ]
+    },
+    {
+      "id": "llm_anthropic_3",
+      "provider": "llm_anthropic",
+      "name": "LLM - Haiku (mechanical steps)",
+      "config": {
+        "profile": "claude-haiku-4-5",
+        "claude-haiku-4-5": {
+          "apikey": "${ROCKETRIDE_ANTHROPIC_KEY}"
+        },
+        "parameters": {},
+        "name": "LLM - Haiku (mechanical steps)"
+      },
+      "ui": {
+        "position": {
+          "x": 1040,
+          "y": 1060
+        },
+        "nodeType": "default",
+        "formDataValid": true
+      },
+      "control": [
+        {
+          "classType": "llm",
+          "from": "agent_crewai_2"
+        },
+        {
+          "classType": "llm",
+          "from": "agent_crewai_manager_1"
+        },
+        {
+          "classType": "llm",
+          "from": "agent_crewai_subagent_2"
+        }
+      ]
+    },
+    {
+      "id": "guardrails_1",
+      "provider": "guardrails",
+      "name": "Outreach Guardrails",
+      "config": {
+        "profile": "custom",
+        "custom": {
+          "allowed_topics": [],
+          "blocked_topics": [
+            "act now",
+            "limited time",
+            "buy now",
+            "click here",
+            "guaranteed results",
+            "risk-free",
+            "don't miss out",
+            "exclusive deal",
+            "free trial",
+            "unsubscribe"
+          ],
+          "enable_content_safety": true,
+          "enable_hallucination_check": true,
+          "enable_pii_detection": true,
+          "enable_prompt_injection": true,
+          "expected_format": "",
+          "max_input_length": 0,
+          "max_tokens_estimate": 0,
+          "policy_mode": "block"
+        },
+        "basic": {
+          "policy_mode": "warn"
+        },
+        "parameters": {
+          "google": {}
+        },
+        "name": "Outreach Guardrails"
+      },
+      "ui": {
+        "position": {
+          "x": 780,
+          "y": 360
+        },
+        "nodeType": "default",
+        "formDataValid": true
+      },
+      "input": [
+        {
+          "lane": "answers",
+          "from": "agent_crewai_1"
+        }
+      ]
+    },
+    {
+      "id": "response_answers_1",
+      "provider": "response_answers",
+      "name": "Response",
+      "config": {
+        "laneName": "answers"
+      },
+      "ui": {
+        "position": {
+          "x": 980,
+          "y": 390
+        },
+        "nodeType": "default",
+        "formDataValid": true
+      },
+      "input": [
+        {
+          "lane": "answers",
+          "from": "guardrails_1"
+        }
+      ]
+    }
+  ],
+  "project_id": "1a4020ed-43cd-4964-8a12-063563e6d920",
+  "version": 1,
+  "docRevision": 92,
+  "isLocked": false,
+  "snapToGrid": true,
+  "snapGridSize": [
+    10,
+    10
+  ]
+}

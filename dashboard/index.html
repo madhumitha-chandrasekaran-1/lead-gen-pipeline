@@ -1,0 +1,371 @@
+<title>Signal Scout Outreach Dashboard</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  :root {
+    color-scheme: dark;
+    --page:           #0a0a0a;
+    --surface-1:      #17171a;
+    --surface-2:      #1e1e22;
+    --text-primary:   #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted:     #89878f;
+    --gridline:       #2c2c30;
+    --border:         rgba(255,255,255,0.08);
+    --funnel-1: #cde2fb; --funnel-2: #86b6ef; --funnel-3: #3987e5; --funnel-4: #256abf; --funnel-5: #184f95;
+    --variant-a: #3987e5;
+    --variant-b: #199e70;
+    --accent: #3987e5;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--page);
+    color: var(--text-primary);
+  }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 32px 20px 64px; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .subtitle { color: var(--text-secondary); font-size: 13px; margin: 0 0 28px; }
+
+  .card {
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+  }
+  .card + .card { margin-top: 20px; }
+  .card-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin: 0 0 16px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 760px) { .row-2 { grid-template-columns: 1fr; } }
+
+  /* Funnel */
+  .funnel-row { display: flex; align-items: center; gap: 14px; margin: 12px 0; }
+  .funnel-label { width: 90px; flex: 0 0 auto; font-size: 13px; color: var(--text-secondary); text-align: right; }
+  .funnel-track { flex: 1; position: relative; height: 26px; }
+  .funnel-bar {
+    height: 26px;
+    border-radius: 0 4px 4px 0;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 10px;
+    min-width: 2px;
+    transition: width .2s ease;
+  }
+  .funnel-bar-label { font-size: 12px; font-weight: 600; color: #08131f; white-space: nowrap; }
+  .funnel-bar-label.outside { color: var(--text-primary); }
+  .funnel-pct { width: 96px; flex: 0 0 auto; font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+
+  /* Variant panel */
+  .variant-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 560px) { .variant-grid { grid-template-columns: 1fr; } }
+  .variant-card {
+    background: var(--surface-2);
+    border-radius: 8px;
+    padding: 16px;
+    border-top: 3px solid var(--variant-color);
+  }
+  .variant-card.a { --variant-color: var(--variant-a); }
+  .variant-card.b { --variant-color: var(--variant-b); }
+  .variant-name { font-size: 13px; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+  .variant-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--variant-color); display: inline-block; }
+  .variant-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .variant-stat-label { font-size: 11px; color: var(--text-muted); margin-bottom: 2px; }
+  .variant-stat-value { font-size: 20px; font-weight: 600; font-variant-numeric: proportional-nums; }
+
+  /* Fit-score histogram */
+  .hist { display: flex; align-items: flex-end; gap: 10px; height: 130px; padding-top: 20px; }
+  .hist-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
+  .hist-count { font-size: 11px; color: var(--text-muted); font-variant-numeric: tabular-nums; margin-bottom: 4px; height: 14px; }
+  .hist-bar { width: 100%; max-width: 40px; background: var(--accent); border-radius: 4px 4px 0 0; min-height: 2px; }
+  .hist-axis { display: flex; gap: 10px; margin-top: 6px; }
+  .hist-tick { flex: 1; text-align: center; font-size: 11px; color: var(--text-muted); }
+  .hist-tick-sub { display: block; font-size: 10px; color: var(--text-muted); opacity: 0.7; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--gridline); }
+  th { color: var(--text-secondary); font-weight: 600; font-size: 12px; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  tr:last-child td { border-bottom: none; }
+  .evidence-cell { max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: help; }
+  .status-badge {
+    display: inline-block;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 100px;
+    background: var(--surface-2);
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+  }
+  .variant-tag {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    width: 18px;
+    height: 18px;
+    line-height: 18px;
+    text-align: center;
+    border-radius: 4px;
+    color: #08131f;
+  }
+  .variant-tag.a { background: var(--variant-a); }
+  .variant-tag.b { background: var(--variant-b); }
+
+  .empty-state {
+    color: var(--text-secondary);
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .empty-state code {
+    background: var(--surface-2);
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-size: 12px;
+  }
+  .empty-state pre {
+    background: var(--page);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-size: 11px;
+    overflow-x: auto;
+  }
+  .hidden { display: none; }
+</style>
+
+<div class="wrap">
+  <h1>Signal Scout Outreach Dashboard</h1>
+  <p class="subtitle">Leads found → sent → opened → replied → signed up, joined from <code>outreach_log.jsonl</code> and <code>tracker/clicks.jsonl</code>.</p>
+
+  <div id="funnelCard" class="card hidden">
+    <p class="card-title">Funnel</p>
+    <div id="funnelChart"></div>
+  </div>
+
+  <div id="variantCard" class="card hidden">
+    <p class="card-title">Variant Performance</p>
+    <div id="variantGrid" class="variant-grid"></div>
+  </div>
+
+  <div class="row-2">
+    <div id="fitScoreCard" class="card hidden">
+      <p class="card-title">Reply Rate by Fit Score</p>
+      <div id="fitScoreChart"></div>
+    </div>
+
+    <div id="signalTypeCard" class="card hidden">
+      <p class="card-title">By Signal Type</p>
+      <table>
+        <thead><tr><th>Signal type</th><th class="num">Leads</th><th class="num">Reply rate</th></tr></thead>
+        <tbody id="signalTypeBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="leadsCard" class="card hidden">
+    <p class="card-title">Leads</p>
+    <div style="overflow-x:auto">
+      <table>
+        <thead>
+          <tr><th>Company</th><th>Signal</th><th>Evidence</th><th class="num">Fit</th><th>Variant</th><th>Status</th></tr>
+        </thead>
+        <tbody id="leadsTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="emptyCard" class="card hidden">
+    <p class="card-title">No data yet</p>
+    <div class="empty-state">
+      <p>This dashboard reads two files, relative to <code>dashboard/</code>:</p>
+      <ul>
+        <li><code>../outreach_log.jsonl</code> — one JSON object per line, one line per lead, written automatically by the pipeline when a lead is found and updated by <code>tracker/update.js</code> as you send/hear back.</li>
+        <li><code>../tracker/clicks.jsonl</code> — written automatically by the tracking server when a recipient opens a <code>tracking_url</code>.</li>
+      </ul>
+      <p>Example <code>outreach_log.jsonl</code> line:</p>
+      <pre>{"lead_id":"acme-inc-x7q2","date_found":"2026-07-14T10:00:00.000Z","company_name":"Acme Inc","contact_or_repo_owner":"alexdev","signal_type":"github","evidence":"llm_router.py hand-rolls OpenAI/Anthropic failover","fit_score":9,"variant":"A","tracking_url":"http://localhost:3000/r/acme-inc-x7q2","message_draft":"Hi Alex, ...","date_sent":null,"replied":null,"signed_up":null}</pre>
+      <p>Serve this directory over HTTP (fetch of local files is blocked over <code>file://</code>) — e.g. from the repo root: <code>python3 -m http.server 8080</code>, then open <code>http://localhost:8080/dashboard/</code>.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+(async function () {
+  async function fetchJsonl(url) {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) return [];
+      const text = await res.text();
+      return text
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .map((line) => {
+          try { return JSON.parse(line); } catch { return null; }
+        })
+        .filter(Boolean);
+    } catch {
+      return [];
+    }
+  }
+
+  const [leads, clicks] = await Promise.all([
+    fetchJsonl('../outreach_log.jsonl'),
+    fetchJsonl('../tracker/clicks.jsonl'),
+  ]);
+
+  const hasAnyData = leads.length > 0;
+  document.getElementById('emptyCard').classList.toggle('hidden', hasAnyData);
+  document.getElementById('funnelCard').classList.toggle('hidden', !hasAnyData);
+  document.getElementById('leadsCard').classList.toggle('hidden', !hasAnyData);
+  if (!hasAnyData) return;
+
+  // Which leads have at least one recorded click
+  const clickedLeadIds = new Set(clicks.map((c) => c.leadId).filter(Boolean));
+
+  const wasSent = (l) => !!l.date_sent;
+  const wasOpened = (l) => wasSent(l) && clickedLeadIds.has(l.lead_id);
+  const wasReplied = (l) => l.replied === true;
+  const wasSignedUp = (l) => l.signed_up === true;
+
+  const pct = (n, d) => (d > 0 ? Math.round((n / d) * 1000) / 10 : 0);
+
+  // ---- Funnel ----
+  const STAGES = [
+    { key: 'found',     label: 'Found',     test: () => true },
+    { key: 'sent',      label: 'Sent',      test: wasSent },
+    { key: 'opened',    label: 'Opened',    test: wasOpened },
+    { key: 'replied',   label: 'Replied',   test: wasReplied },
+    { key: 'signed_up', label: 'Signed up', test: wasSignedUp },
+  ];
+  const counts = {};
+  for (const s of STAGES) counts[s.key] = leads.filter(s.test).length;
+  const found = counts.found;
+  const maxCount = Math.max(found, 1);
+
+  const funnelChart = document.getElementById('funnelChart');
+  funnelChart.innerHTML = STAGES.map((s, i) => {
+    const n = counts[s.key];
+    const widthPct = Math.max((n / maxCount) * 100, n > 0 ? 3 : 0);
+    const conv = pct(n, found);
+    const inside = widthPct > 20;
+    return `
+      <div class="funnel-row">
+        <div class="funnel-label">${s.label}</div>
+        <div class="funnel-track">
+          <div class="funnel-bar" style="width:${widthPct}%; background:var(--funnel-${i + 1});">
+            ${inside ? `<span class="funnel-bar-label">${n}</span>` : ''}
+          </div>
+          ${!inside ? `<span class="funnel-bar-label outside" style="position:absolute; left:calc(${widthPct}% + 8px); top:0; line-height:26px;">${n}</span>` : ''}
+        </div>
+        <div class="funnel-pct">${conv}% of found</div>
+      </div>
+    `;
+  }).join('');
+
+  // ---- Variant performance ----
+  const scoredVariants = ['A', 'B'].filter((v) => leads.some((l) => l.variant === v));
+  document.getElementById('variantCard').classList.toggle('hidden', scoredVariants.length === 0);
+  if (scoredVariants.length > 0) {
+    const variantGrid = document.getElementById('variantGrid');
+    variantGrid.innerHTML = ['A', 'B'].map((v) => {
+      const vLeads = leads.filter((l) => l.variant === v);
+      const sent = vLeads.filter(wasSent).length;
+      const opened = vLeads.filter(wasOpened).length;
+      const replied = vLeads.filter(wasReplied).length;
+      const signedUp = vLeads.filter(wasSignedUp).length;
+      return `
+        <div class="variant-card ${v.toLowerCase()}">
+          <div class="variant-name"><span class="variant-dot"></span>Variant ${v}</div>
+          <div class="variant-stats">
+            <div><div class="variant-stat-label">Sent</div><div class="variant-stat-value">${sent}</div></div>
+            <div><div class="variant-stat-label">Click rate</div><div class="variant-stat-value">${pct(opened, sent)}%</div></div>
+            <div><div class="variant-stat-label">Reply rate</div><div class="variant-stat-value">${pct(replied, sent)}%</div></div>
+            <div><div class="variant-stat-label">Signup rate</div><div class="variant-stat-value">${pct(signedUp, sent)}%</div></div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // ---- Reply rate by fit-score bucket ----
+  const BUCKETS = [
+    { label: '1-3', min: 1, max: 3 },
+    { label: '4-5', min: 4, max: 5 },
+    { label: '6-7', min: 6, max: 7 },
+    { label: '8-9', min: 8, max: 9 },
+    { label: '10', min: 10, max: 10 },
+  ];
+  const bucketStats = BUCKETS.map((b) => {
+    const inBucket = leads.filter((l) => typeof l.fit_score === 'number' && l.fit_score >= b.min && l.fit_score <= b.max);
+    const sent = inBucket.filter(wasSent).length;
+    const replied = inBucket.filter(wasReplied).length;
+    return { ...b, sent, replied, rate: pct(replied, sent) };
+  });
+  const hasFitScoreData = bucketStats.some((b) => b.sent > 0);
+  document.getElementById('fitScoreCard').classList.toggle('hidden', !hasFitScoreData);
+  if (hasFitScoreData) {
+    const maxRate = Math.max(...bucketStats.map((b) => b.rate), 1);
+    document.getElementById('fitScoreChart').innerHTML = `
+      <div class="hist">
+        ${bucketStats.map((b) => `
+          <div class="hist-col">
+            <div class="hist-count">${b.sent > 0 ? b.rate + '%' : ''}</div>
+            <div class="hist-bar" style="height:${b.sent > 0 ? Math.max((b.rate / maxRate) * 100, 4) : 0}%"></div>
+          </div>
+        `).join('')}
+      </div>
+      <div class="hist-axis">
+        ${bucketStats.map((b) => `<div class="hist-tick">${b.label}<span class="hist-tick-sub">${b.sent} sent</span></div>`).join('')}
+      </div>
+    `;
+  }
+
+  // ---- By signal type ----
+  const SIGNAL_LABELS = { github: 'GitHub repo', job_posting: 'Job posting', social: 'Social' };
+  const signalTypes = [...new Set(leads.map((l) => l.signal_type).filter(Boolean))];
+  document.getElementById('signalTypeCard').classList.toggle('hidden', signalTypes.length === 0);
+  if (signalTypes.length > 0) {
+    const rows = signalTypes.map((t) => {
+      const tLeads = leads.filter((l) => l.signal_type === t);
+      const sent = tLeads.filter(wasSent).length;
+      const replied = tLeads.filter(wasReplied).length;
+      return `<tr><td>${SIGNAL_LABELS[t] || t}</td><td class="num">${tLeads.length}</td><td class="num">${pct(replied, sent)}%</td></tr>`;
+    });
+    document.getElementById('signalTypeBody').innerHTML = rows.join('');
+  }
+
+  // ---- Leads table ----
+  const statusOf = (l) => {
+    if (wasSignedUp(l)) return 'Signed up';
+    if (wasReplied(l)) return 'Replied';
+    if (wasOpened(l)) return 'Opened';
+    if (wasSent(l)) return 'Sent';
+    return 'Found';
+  };
+  const leadsTableBody = document.getElementById('leadsTableBody');
+  const rows = leads.map((l) => {
+    const evidence = (l.evidence || '').replace(/"/g, '&quot;');
+    return `
+      <tr>
+        <td>${l.company_name || '—'}</td>
+        <td>${SIGNAL_LABELS[l.signal_type] || l.signal_type || '—'}</td>
+        <td class="evidence-cell" title="${evidence}">${l.evidence || '—'}</td>
+        <td class="num">${typeof l.fit_score === 'number' ? l.fit_score : '—'}</td>
+        <td>${l.variant ? `<span class="variant-tag ${l.variant.toLowerCase()}">${l.variant}</span>` : '—'}</td>
+        <td><span class="status-badge">${statusOf(l)}</span></td>
+      </tr>
+    `;
+  });
+  leadsTableBody.innerHTML = rows.join('') || '<tr><td colspan="6">No leads yet</td></tr>';
+})();
+</script>

@@ -1,0 +1,5 @@
+.rocketride/
+.env
+tracker/node_modules/
+tracker/clicks.jsonl
+outreach_log.jsonl
