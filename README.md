@@ -4,30 +4,9 @@ A RocketRide pipeline that finds companies building custom LLM pipeline infrastr
 
 ## Pipeline
 
-```mermaid
-flowchart LR
-    Chat[["Chat<br/>source"]] -->|questions| Scout(["Signal Scout Agent<br/>agent · tool"])
-    Scout -->|answers| Guard[/"Outreach Guardrails<br/>guard"/]
-    Guard -->|answers| Resp[["Response<br/>infrastructure"]]
+![Pipeline canvas](docs/pipeline.png)
 
-    Scout -.tool.-> GH[("GitHub Search")]
-    Scout -.tool.-> Exa[("Exa Search")]
-    Scout -.tool.-> FC[("Firecrawl")]
-    Scout -.tool.-> Logger[("Outreach Logger")]
-    Scout -.tool.-> Extractor(["Data Extractor Agent"])
-    Scout -.tool.-> Manager(["Outreach Manager"])
-
-    Manager -.crewai.-> Copy(["Copywriter Subagent"])
-    Manager -.crewai.-> Tone(["Tone Checker Subagent"])
-
-    Opus{{"LLM · Opus 4.8<br/>(orchestrator)"}} -.llm.-> Scout
-    Sonnet{{"LLM · Sonnet 5<br/>(copywriting)"}} -.llm.-> Copy
-    Haiku{{"LLM · Haiku 4.5<br/>(mechanical steps)"}} -.llm.-> Extractor
-    Haiku -.llm.-> Manager
-    Haiku -.llm.-> Tone
-```
-
-Solid arrows are the request/response data flow; dashed arrows are control-plane connections (tools, delegated sub-agents, and the LLM each agent reasons with). Open `sales.pipe` in the RocketRide canvas to see the live version of this graph.
+Solid connections are the request/response data flow (Chat → Signal Scout Agent → Outreach Guardrails → Response); dashed connections are control-plane wiring — the tools and sub-agents each agent invokes, and the LLM each one reasons with. Open `sales.pipe` in the RocketRide canvas to explore it live.
 
 ### How it works
 
